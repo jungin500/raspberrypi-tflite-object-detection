@@ -47,8 +47,11 @@ class Cv2BufferWaster(threading.Thread):
         self.start()
         
     def run(self):
-        while True:
+        self.shutdown = False
+        while not self.shutdown:
             ret, self.last_frame = self.cap.read()
+            if not self.cap.isOpened():
+                self.shutdown = True
         self.shutdown = True
 
 
@@ -194,21 +197,27 @@ def main():
   buffer_waster = Cv2BufferWaster(cap)
     
   while True:
-    camera_out = buffer_waster.last_frame
-    if buffer_waster.shutdown:
-        break
-    if camera_out is None or camera_out.size == 0:
-        continue
-    
-    image = cv2.cvtColor(camera_out, cv2.COLOR_BGR2RGB)
-    image = cv2.resize(image, (input_width, input_height))
-    
-    start_time = time.monotonic()
-    results = detect_objects(interpreter, image, args.threshold)
-    elapsed_ms = (time.monotonic() - start_time) * 1000
-    
-    print('Single-frame inference: %.1fms' % (elapsed_ms))
-    annotate_objects_cv(annotator, camera_out, results, labels)
+    try:
+        camera_out = buffer_waster.last_frame
+        if buffer_waster.shutdown:
+            break
+        if camera_out is None or camera_out.size == 0:
+            continue
+
+        image = cv2.cvtColor(camera_out, cv2.COLOR_BGR2RGB)
+        image = cv2.resize(image, (input_width, input_height))
+
+        start_time = time.monotonic()
+        results = detect_objects(interpreter, image, args.threshold)
+        elapsed_ms = (time.monotonic() - start_time) * 1000
+
+        print('Single-frame inference: %.1fms' % (elapsed_ms))
+        annotate_objects_cv(annotator, camera_out, results, labels)
+    except KeyboardInterrupt as e:
+        import sys
+        
+        buffer_waster.cap.release()
+        raise e
 
 if __name__ == '__main__':
   main()

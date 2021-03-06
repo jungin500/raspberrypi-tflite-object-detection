@@ -5,8 +5,8 @@ class CvAnnotator:
         self.window_name = 'CvAnnotator'
         cv2.namedWindow(self.window_name)
         
-    def __del__():
-        cv2.destroyAllWindow()
+    def __del__(self):
+        cv2.destroyAllWindows()
         
     def show(self, image, rect, text):
         image_with_anot = cv2.rectangle(image, rect, (0,255,0), 2)
